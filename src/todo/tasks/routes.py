@@ -45,3 +45,35 @@ def reorder():
     task_ids = data.get("task_ids", [])
     reorder_tasks(task_ids)
     return jsonify({"status": "ok"}), 200
+
+
+# ============================================================
+# Вложенные роуты: задачи внутри конкретного списка
+# URL: /tasks/by-list/<list_id>
+# ============================================================
+from todo.lists.services import get_list
+
+
+@tasks_bp.get("/by-list/<int:list_id>")
+def get_tasks_by_list(list_id: int):
+    """
+    GET /tasks/by-list/<list_id> — все задачи конкретного списка.
+    Если списка нет — get_list бросит ListNotFound (404 через error handler).
+    """
+    get_list(list_id)
+    tasks = list_tasks(list_id=list_id)
+    return jsonify(tasks_schema.dump(tasks))
+
+
+@tasks_bp.post("/by-list/<int:list_id>")
+def add_task_to_list(list_id: int):
+    """
+    POST /tasks/by-list/<list_id> — создать задачу в списке.
+    Тело: {"title": "...", "description": "..."}
+    list_id берётся из URL — игнорируем возможный list_id в теле.
+    """
+    get_list(list_id)
+    data = task_schema.load(request.get_json())
+    data["list_id"] = list_id
+    task = create_task(**data)
+    return jsonify(task_schema.dump(task)), 201
