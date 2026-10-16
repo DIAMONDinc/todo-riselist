@@ -1,0 +1,24 @@
+# Окружение
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Секреты и данные
+.env
+*.db
+*.sqlite
+instance/
+
+# OS
+.DS_Store
+Thumbs.db
