@@ -1,0 +1,188 @@
+/* ============================================================
+   Компоненты: кнопки, категории, списки, задачи.
+   ============================================================ */
+
+/* ---------- Кнопки ---------- */
+.btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: var(--bg-elevated);
+    color: var(--text);
+    border-color: var(--border);
+}
+.btn-secondary:hover {
+    background: var(--bg);
+}
+
+/* ---------- Категории ---------- */
+.category {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow);
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.category-name {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.category-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.category:hover .category-actions {
+    opacity: 1;
+}
+
+.icon-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    background: var(--bg-sidebar);
+    color: var(--text);
+}
+
+.icon-btn.danger:hover {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* ---------- Списки ---------- */
+.list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.list-item:hover {
+    background: var(--bg-sidebar);
+}
+
+.list-item.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.list-item.active .icon-btn {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.list-item-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- Задачи ---------- */
+.task-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s, transform 0.1s;
+}
+
+.task-card:hover {
+    border-color: var(--accent);
+}
+
+.task-card.done {
+    opacity: 0.6;
+}
+
+.task-card.done .task-title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.task-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
+.task-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-title {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- Drag-and-drop ---------- */
+.dragging {
+    opacity: 0.4;
+}
+
+.drop-target {
+    border-color: var(--accent) !important;
+    border-style: dashed !important;
+}

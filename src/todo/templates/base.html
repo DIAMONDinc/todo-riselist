@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Riselist{% endblock %}</title>
+
+    {# CSS подключаем в правильном порядке:
+       темы → база → layout → компоненты.
+       Так стили компонентов переопределяют базовые. #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+</head>
+<body>
+    {# Верхняя панель — видна на всех страницах #}
+    <header class="app-header">
+        <h1 class="app-title">Riselist</h1>
+
+        {# Переключатель тем. data-theme-value → значение для атрибута data-theme у <html> #}
+        <div class="theme-switcher">
+            <button class="theme-btn" data-theme-value="light" title="Светлая тема">☀</button>
+            <button class="theme-btn" data-theme-value="dark" title="Тёмная тема">🌙</button>
+            <button class="theme-btn" data-theme-value="night" title="Ночная тема">🌆</button>
+        </div>
+    </header>
+
+    {# Сюда вставляется содержимое конкретной страницы #}
+    <main class="app-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    {# JS в конце body, чтобы DOM был готов до выполнения #}
+    <script src="{{ url_for('static', filename='js/theme-switcher.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.v2.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

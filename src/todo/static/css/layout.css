@@ -1,0 +1,117 @@
+/* ============================================================
+   Layout: каркас страницы и сетка.
+   ============================================================ */
+
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.app-title {
+    font-size: 20px;
+    color: var(--accent);
+}
+
+.theme-switcher {
+    display: flex;
+    gap: 4px;
+}
+
+.theme-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: background 0.15s;
+}
+
+.theme-btn:hover {
+    background: var(--bg-sidebar);
+}
+
+.theme-btn.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* Основная зона приложения — растягивается под header */
+.app-main {
+    height: calc(100vh - 61px); /* 61px ≈ высота header с бордером */
+}
+
+/* Двухколоночный layout: сайдбар + контент */
+.board-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: 100%;
+}
+
+.sidebar {
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.categories-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+
+.list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.list-title {
+    font-size: 22px;
+}
+
+.tasks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Адаптивность: на мобильных сайдбар уходит наверх */
+@media (max-width: 768px) {
+    .board-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 40vh;
+    }
+}

@@ -1,0 +1,51 @@
+/* ============================================================
+   Переменные тем.
+   Все цвета вынесены в CSS-переменные.
+   Меняем атрибут data-theme у <html> — меняются все цвета.
+   ============================================================ */
+
+/* Светлая тема (по умолчанию) */
+:root,
+[data-theme="light"] {
+    --bg:           #f5f6f8;
+    --bg-elevated:  #ffffff;
+    --bg-sidebar:   #ebeef2;
+    --text:         #1f2328;
+    --text-muted:   #656d76;
+    --border:       #d0d7de;
+    --accent:       #4a90e2;
+    --accent-hover: #357ab8;
+    --danger:       #d73a49;
+    --success:      #28a745;
+    --shadow:       0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Тёмная тема */
+[data-theme="dark"] {
+    --bg:           #0d1117;
+    --bg-elevated:  #161b22;
+    --bg-sidebar:   #161b22;
+    --text:         #e6edf3;
+    --text-muted:   #8b949e;
+    --border:       #30363d;
+    --accent:       #58a6ff;
+    --accent-hover: #79b8ff;
+    --danger:       #f85149;
+    --success:      #3fb950;
+    --shadow:       0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Ночная тема — тёплые оттенки, мягкий контраст */
+[data-theme="night"] {
+    --bg:           #1a1a2e;
+    --bg-elevated:  #22223b;
+    --bg-sidebar:   #22223b;
+    --text:         #e8d8b7;
+    --text-muted:   #a89174;
+    --border:       #3a3a5c;
+    --accent:       #ff8c42;
+    --accent-hover: #ffa366;
+    --danger:       #e74c3c;
+    --success:      #7dba6c;
+    --shadow:       0 1px 3px rgba(0, 0, 0, 0.5);
+}

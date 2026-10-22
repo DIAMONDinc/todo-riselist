@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Riselist — Мои задачи{% endblock %}
+
+{% block content %}
+<div class="board-layout">
+
+    {# === ЛЕВАЯ ПАНЕЛЬ: категории и списки === #}
+    <aside class="sidebar">
+        <div class="sidebar-actions">
+            <button class="btn btn-primary" id="create-category-btn">+ Категория</button>
+            <button class="btn btn-secondary" id="create-list-btn">+ Список</button>
+        </div>
+
+        {# Сюда JS отрендерит категории и их списки #}
+        <div id="categories-container" class="categories-container">
+            <p class="empty-hint">Загрузка...</p>
+        </div>
+    </aside>
+
+    {# === ПРАВАЯ ОБЛАСТЬ: задачи выбранного списка === #}
+    <main class="main-content">
+        <header class="list-header">
+            <h2 id="current-list-title" class="list-title">Выберите список</h2>
+            <button class="btn btn-primary" id="create-task-btn" hidden>+ Задача</button>
+        </header>
+
+        {# Сюда JS отрендерит задачи выбранного списка #}
+        <div id="tasks-container" class="tasks-container">
+            <p class="empty-hint">Выберите список слева, чтобы увидеть задачи.</p>
+        </div>
+    </main>
+
+</div>
+{% endblock %}
