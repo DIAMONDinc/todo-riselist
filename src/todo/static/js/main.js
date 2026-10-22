@@ -284,7 +284,11 @@
 
         // Навешиваем обработчики кнопок
         setupButtons();
-
+        // Слушаем событие из context-menu.js: когда там что-то удалят,
+        // мы перезагружаем данные и перерисовываем экран.
+        document.addEventListener('data-changed', async () => {
+            await refreshAll();
+        });
         // Загружаем данные и рендерим
         try {
             await refreshAll();

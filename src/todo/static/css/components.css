@@ -186,3 +186,32 @@
     border-color: var(--accent) !important;
     border-style: dashed !important;
 }
+
+/* ---------- Контекстное меню ---------- */
+.context-menu {
+    position: absolute;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--text);
+    transition: background 0.1s;
+}
+
+.context-menu-item:hover {
+    background: var(--danger);
+    color: #fff;
+}
