@@ -41,3 +41,11 @@ def delete_list(list_id: int) -> None:
     # Каскад "all, delete-orphan" в модели TaskList удалит все задачи этого списка
     db.session.delete(task_list)
     db.session.commit()
+
+
+def update_list(list_id: int, name: str) -> TaskList:
+    """Обновить название списка."""
+    task_list = get_list(list_id)
+    task_list.name = name
+    db.session.commit()
+    return task_list

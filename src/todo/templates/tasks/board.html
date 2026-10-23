@@ -19,9 +19,6 @@
     </aside>
 
     {# === ПРАВАЯ ОБЛАСТЬ: задачи выбранного списка === #}
-    <div id="custom-context-menu" class="context-menu" hidden>
-    <button class="context-menu-item" data-action="delete">🗑️ Удалить</button>
-    </div>
     <main class="main-content">
         <header class="list-header">
             <h2 id="current-list-title" class="list-title">Выберите список</h2>
@@ -33,6 +30,23 @@
             <p class="empty-hint">Выберите список слева, чтобы увидеть задачи.</p>
         </div>
     </main>
+
+    {# === МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ === #}
+    <div id="custom-modal" class="modal-overlay" hidden>
+        <div class="modal-content">
+            <h3 id="modal-title" class="modal-title">Подтверждение</h3>
+            <p id="modal-text" class="modal-text">Вы уверены?</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="modal-cancel">Отмена</button>
+                <button class="btn btn-danger" id="modal-confirm">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    {# === КОНТЕКСТНОЕ МЕНЮ (ВЫПАДАЮЩЕЕ) === #}
+    <div id="custom-context-menu" class="context-menu" hidden>
+        <!-- Содержимое будет генерироваться через JS -->
+    </div>
 
 </div>
 {% endblock %}

@@ -1,112 +1,208 @@
 // ============================================================
-// Контекстное меню (правый клик).
-// Работает независимо от drag-and-drop.
+// Логика кастомных меню (три точки, подменю) и модальных окон.
 // ============================================================
 
-// Обертка (IIFE), чтобы переменные не засоряли глобальную область видимости.
 (function () {
     'use strict';
 
-    // Находим HTML-элемент меню, который мы добавили в board.html
+    // Находим элементы
     const menu = document.getElementById('custom-context-menu');
+    const modal = document.getElementById('custom-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalText = document.getElementById('modal-text');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalConfirm = document.getElementById('modal-confirm');
 
-    // Переменная для хранения того, на что именно мы кликнули правой кнопкой.
-    // Например: { type: 'list', id: 5 } или { type: 'task', id: 12 }
-    let currentTarget = null;
-
-    // --- Вспомогательные функции ---
-
-    // Спрятать меню и сбросить цель
-    function hideMenu() {
-        menu.hidden = true;
-        currentTarget = null;
+    // Если элементов нет на странице — выходим, чтобы не было ошибок
+    if (!menu || !modal) {
+        console.warn('Не найдены элементы меню или модального окна!');
+        return;
     }
 
-    // Показать меню в координатах мыши (x, y)
-    function showMenu(x, y) {
-        // Позиционируем меню абсолютно (стили position: absolute заданы в CSS)
+    let currentTarget = null; // { type: 'list'|'task', id: number }
+
+        // --- Модальное окно ---
+    // Выносим в window, чтобы main.js тоже мог его использовать
+    window.showModal = function(title, text, onConfirm) {
+        modalTitle.textContent = title;
+        modalText.textContent = text;
+        modal.hidden = false;
+
+        // Используем onclick, чтобы перезаписать предыдущий обработчик, а не добавлять новый
+        modalConfirm.onclick = () => {
+            modal.hidden = true;
+            if (onConfirm) onConfirm();
+        };
+    };
+
+    modalCancel.addEventListener('click', () => { modal.hidden = true; });
+
+    // --- Прячем меню ---
+    function hideMenu() {
+        menu.hidden = true;
+        menu.innerHTML = ''; // Очищаем содержимое
+    }
+
+    // --- Показ меню ---
+    function showMenu(x, y, htmlContent) {
+        menu.innerHTML = htmlContent;
         menu.style.left = `${x}px`;
         menu.style.top = `${y}px`;
         menu.hidden = false;
     }
 
-    // --- Обработчик правого клика по всей странице ---
-    // Мы вешаем обработчик на весь document, а не на каждую задачу/список.
-    // Это называется "делегирование событий" и экономит память.
-    document.addEventListener('contextmenu', (e) => {
-
-        // e.target — это элемент, по которому кликнули.
-        // .closest() ищет ближайшего родителя с нужным классом.
-        // Если кликнули по тексту внутри задачи, closest найдет саму карточку.
-        const listItem = e.target.closest('.list-item');
-        const taskCard = e.target.closest('.task-card');
-
-        if (listItem) {
-            // Предотвращаем стандартное меню браузера (Сохранить картинку, Копировать и т.д.)
+    // --- Обработчик клика по кнопкам "Три точки" ---
+    document.addEventListener('click', async (e) => {
+        // 1. Если кликнули по кнопке "три точки" у задачи
+        const taskMoreBtn = e.target.closest('[data-task-more]');
+        if (taskMoreBtn) {
+            e.stopPropagation();
             e.preventDefault();
 
-            // Запоминаем, что кликнули по списку, и берем его ID из data-атрибута
-            currentTarget = { type: 'list', id: parseInt(listItem.dataset.listId, 10) };
+            const taskId = parseInt(taskMoreBtn.dataset.taskMore, 10);
+            currentTarget = { type: 'task', id: taskId };
 
-            // Показываем наше меню в координатах курсора (pageX/pageY учитывают скролл страницы)
-            showMenu(e.pageX, e.pageY);
+            const rect = taskMoreBtn.getBoundingClientRect();
+            const x = rect.left + window.scrollX - 120;
+            const y = rect.bottom + window.scrollY + 4;
 
-        } else if (taskCard) {
+            // Получаем все списки для подменю
+            const lists = await API.getLists();
+            let listsHtml = lists.map(l => `<button class="context-menu-item" data-move-to="${l.id}">${escapeHtml(l.name)}</button>`).join('');
+            if (lists.length === 0) {
+                listsHtml = `<div class="context-menu-item" style="color:var(--text-muted); cursor:default;">Нет списков</div>`;
+            }
+
+            const html = `
+                <div class="context-menu-item has-submenu">
+                    📁 Переместить в список
+                    <div class="context-submenu">
+                        ${listsHtml}
+                        <button class="context-menu-item" data-create-list-move>+ Создать новый список</button>
+                    </div>
+                </div>
+                <button class="context-menu-item" data-delete-task="${taskId}" style="color: var(--danger);">🗑️ Удалить</button>
+            `;
+            showMenu(x, y, html);
+            return;
+        }
+
+        // 2. Если кликнули по кнопке "три точки" у списка
+        const listMoreBtn = e.target.closest('[data-list-more]');
+        if (listMoreBtn) {
+            e.stopPropagation();
             e.preventDefault();
 
-            // Для задачи ID хранится в чекбоксе (мы так верстали карточку)
-            const checkbox = taskCard.querySelector('.task-checkbox');
-            currentTarget = { type: 'task', id: parseInt(checkbox.dataset.taskId, 10) };
+            const listId = parseInt(listMoreBtn.dataset.listMore, 10);
+            currentTarget = { type: 'list', id: listId };
 
-            showMenu(e.pageX, e.pageY);
+            const rect = listMoreBtn.getBoundingClientRect();
+            const x = rect.left + window.scrollX - 100;
+            const y = rect.bottom + window.scrollY + 4;
 
-        } else {
-            // Если кликнули в пустоту (не по списку и не по задаче) — прячем меню
+            const html = `
+                <button class="context-menu-item" data-rename-list="${listId}">✏️ Переименовать</button>
+                <button class="context-menu-item" data-delete-list="${listId}" style="color: var(--danger);">🗑️ Удалить</button>
+            `;
+            showMenu(x, y, html);
+            return;
+        }
+
+        // 3. Клик мимо меню — прячем его
+        // Но если кликнули внутри меню, не прячем (там свои обработчики)
+        if (!e.target.closest('#custom-context-menu')) {
             hideMenu();
         }
     });
 
-    // --- Обработчик клика в любом месте страницы ---
-    // Если меню открыто, и мы кликнули в другое место — оно должно закрыться.
-    document.addEventListener('click', hideMenu);
-
-    // --- Обработчик клика по пунктам меню ---
+    // --- Обработка кликов ВНУТРИ меню ---
     menu.addEventListener('click', async (e) => {
-        // Находим кнопку, по которой кликнули
         const btn = e.target.closest('.context-menu-item');
+        if (!btn) return;
 
-        // Если кликнули мимо кнопки или currentTarget сбросился — выходим
-        if (!btn || !currentTarget) return;
-
-        // Узнаем, какое действие выбрано (у нас пока только 'delete')
-        const action = btn.dataset.action;
-
-        if (action === 'delete') {
-            // Формируем правильный текст подтверждения
-            const confirmMsg = currentTarget.type === 'list'
-                ? 'Удалить список и все его задачи?'
-                : 'Удалить задачу?';
-
-            if (confirm(confirmMsg)) {
-                try {
-                    // Вызываем нужный метод из нашего API (api.v2.js)
-                    if (currentTarget.type === 'list') {
-                        await API.deleteList(currentTarget.id);
-                    } else if (currentTarget.type === 'task') {
-                        await API.deleteTask(currentTarget.id);
-                    }
-
-                    // ВАЖНО: Context-menu.js не знает, как перерисовывать интерфейс (это делает main.js).
-                    // Поэтому мы "кричим" (отправляем событие) на весь document,
-                    // что данные изменились. main.js слушает это событие и обновляет экран.
-                    document.dispatchEvent(new CustomEvent('data-changed'));
-
-                } catch (err) {
-                    alert('Ошибка: ' + err.message);
-                }
-            }
+        if (btn.classList.contains('has-submenu')) {
+            e.stopPropagation();
+            return;
         }
-        // В любом случае после действия прячем меню
-        hideMenu();
+
+        // --- Действия с задачами ---
+        if (btn.dataset.moveTo) {
+            const newListId = parseInt(btn.dataset.moveTo, 10);
+            try {
+                await API.moveTask(currentTarget.id, newListId);
+                document.dispatchEvent(new CustomEvent('data-changed'));
+            } catch (err) { alert(err.message); }
+            hideMenu();
+            return;
+        }
+
+        if (btn.hasAttribute('data-create-list-move')) {
+            hideMenu();
+            const newListName = prompt('Введите название нового списка:');
+            if (!newListName || !newListName.trim()) return;
+
+            try {
+                // Ищем категорию текущего выбранного списка
+                // Для этого нам нужны данные из main.js, но проще спросить у API
+                const lists = await API.getLists();
+                // В данном случае мы не знаем, в какую категорию создавать,
+                // поэтому создаем в первой попавшейся (или можно спросить ID категории)
+                // Для простоты пока просто предупредим.
+                alert('Для создания списка используйте кнопку "+ Список" в левом меню.');
+            } catch (err) { alert(err.message); }
+            return;
+        }
+
+        if (btn.dataset.deleteTask) {
+            const taskId = parseInt(btn.dataset.deleteTask, 10);
+            hideMenu();
+            window.showModal(
+                'Удалить задачу?',
+                'Вы собираетесь удалить задачу. Восстановить её будет невозможно (корзина пока не реализована).',
+                async () => {
+                    try {
+                        await API.deleteTask(taskId);
+                        document.dispatchEvent(new CustomEvent('data-changed'));
+                    } catch (err) { alert(err.message); }
+                }
+            );
+            return;
+        }
+
+        // --- Действия со списками ---
+        if (btn.dataset.renameList) {
+            const listId = parseInt(btn.dataset.renameList, 10);
+            hideMenu();
+            const newName = prompt('Введите новое название списка:');
+            if (!newName || !newName.trim()) return;
+
+            try {
+                await API.updateList(listId, newName.trim());
+                document.dispatchEvent(new CustomEvent('data-changed'));
+            } catch (err) { alert(err.message); }
+            return;
+        }
+
+        if (btn.dataset.deleteList) {
+            const listId = parseInt(btn.dataset.deleteList, 10);
+            hideMenu();
+            window.showModal(
+                'Удалить список?',
+                'Вы собираетесь удалить СПИСОК вместе со всеми его задачами. Это действие необратимо.',
+                async () => {
+                    try {
+                        await API.deleteList(listId);
+                        document.dispatchEvent(new CustomEvent('data-changed'));
+                    } catch (err) { alert(err.message); }
+                }
+            );
+            return;
+        }
     });
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
 })();

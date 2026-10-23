@@ -17,15 +17,13 @@
     };
 
     // --- DOM-элементы ---
-    // Находим элементы один раз при инициализации,
-    // чтобы не искать их при каждом рендере
     let categoriesContainer;
     let tasksContainer;
     let currentListTitle;
     let createTaskBtn;
 
     // ============================================================
-    // API-обёртки (используем window.API из api.v2.js)
+    // API-обёртки
     // ============================================================
 
     async function loadCategories() {
@@ -45,7 +43,6 @@
     // ============================================================
 
     function renderSidebar() {
-        // Очищаем контейнер
         categoriesContainer.innerHTML = '';
 
         if (state.categories.length === 0) {
@@ -53,26 +50,26 @@
             return;
         }
 
-        // Для каждой категории создаём блок
         state.categories.forEach(category => {
-            // Списки этой категории
             const listsOfCategory = state.lists.filter(
                 l => l.category_id === category.id
             );
 
-            // Собираем HTML списка задач
+            // Формируем HTML для каждого списка (добавляем кнопку "три точки")
             const listsHtml = listsOfCategory.map(list => {
                 const activeClass = list.id === state.selectedListId ? ' active' : '';
                 return `
                     <div class="list-item${activeClass}" data-list-id="${list.id}">
                         <span class="list-item-name">${escapeHtml(list.name)}</span>
+                        <button class="icon-btn more-btn" data-list-more="${list.id}">⋮</button>
                     </div>
                 `;
             }).join('');
 
-            // Карточка категории
+            // Карточка категории (добавляем data-category-id для Drag-and-Drop)
             const categoryEl = document.createElement('div');
             categoryEl.className = 'category';
+            categoryEl.dataset.categoryId = category.id; // <-- Нужно для DnD задач на пустые категории
             categoryEl.innerHTML = `
                 <div class="category-header">
                     <span class="category-name">${escapeHtml(category.name)}</span>
@@ -84,31 +81,41 @@
             categoriesContainer.appendChild(categoryEl);
         });
 
-        // Навешиваем обработчики на списки (делегирование)
+        // Навешиваем обработчики на списки
         categoriesContainer.querySelectorAll('.list-item').forEach(el => {
-            el.addEventListener('click', () => {
+            el.addEventListener('click', (e) => {
+                // ВАЖНО: Если кликнули на кнопку "три точки", не выбираем список!
+                if (e.target.closest('.more-btn')) return;
+
                 selectList(parseInt(el.dataset.listId, 10));
             });
         });
 
-        // Обработчики на кнопки удаления категорий
+        // Обработчики на кнопки удаления категорий (крестик ✕)
         categoriesContainer.querySelectorAll('[data-delete-category]').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const catId = parseInt(btn.dataset.deleteCategory, 10);
-                if (!confirm('Удалить категорию и все её списки с задачами?')) return;
-                try {
-                    await API.deleteCategory(catId);
-                    await refreshAll();
-                } catch (err) {
-                    alert('Ошибка: ' + err.message);
+
+                // Используем наше красивое модальное окно из context-menu.js,
+                // если оно доступно, иначе fallback на confirm.
+                if (typeof window.showModal === 'function') {
+                    window.showModal('Удалить категорию?', 'Удалятся все списки и задачи внутри этой категории.', async () => {
+                        await API.deleteCategory(catId);
+                        await refreshAll();
+                    });
+                } else {
+                    if (!confirm('Удалить категорию и все её списки с задачами?')) return;
+                    try {
+                        await API.deleteCategory(catId);
+                        await refreshAll();
+                    } catch (err) { alert('Ошибка: ' + err.message); }
                 }
             });
         });
     }
 
     function renderTasks() {
-        // Очищаем контейнер
         tasksContainer.innerHTML = '';
 
         if (state.selectedListId === null) {
@@ -124,33 +131,23 @@
         state.tasks.forEach(task => {
             const card = document.createElement('div');
             card.className = 'task-card' + (task.is_done ? ' done' : '');
-            card.draggable = true;         // <-- Добавляем: разрешаем перетаскивание
-            card.dataset.taskId = task.id; // <-- Добавляем: сохраняем ID задачи в DOM (чтобы потом собрать порядок)
+            card.draggable = true;
+            card.dataset.taskId = task.id;
+
+            // Обратите внимание: крестик ✕ заменён на кнопку "три точки" ⋮
             card.innerHTML = `
                 <input type="checkbox" class="task-checkbox" ${task.is_done ? 'checked' : ''} data-task-id="${task.id}">
                 <div class="task-content">
                     <div class="task-title">${escapeHtml(task.title)}</div>
                     ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
                 </div>
-                <button class="icon-btn danger" data-delete-task="${task.id}" title="Удалить">✕</button>
+                <button class="icon-btn more-btn" data-task-more="${task.id}">⋮</button>
             `;
 
-            // Обработчик чекбокса — toggle
+            // Обработчик чекбокса (toggle)
             card.querySelector('.task-checkbox').addEventListener('change', async (e) => {
                 try {
                     await API.toggleTask(task.id);
-                    await loadTasks(state.selectedListId);
-                    renderTasks();
-                } catch (err) {
-                    alert('Ошибка: ' + err.message);
-                }
-            });
-
-            // Обработчик кнопки удаления
-            card.querySelector('[data-delete-task]').addEventListener('click', async () => {
-                if (!confirm('Удалить задачу?')) return;
-                try {
-                    await API.deleteTask(task.id);
                     await loadTasks(state.selectedListId);
                     renderTasks();
                 } catch (err) {
@@ -169,17 +166,13 @@
     async function selectList(listId) {
         state.selectedListId = listId;
 
-        // Найдём название списка
         const list = state.lists.find(l => l.id === listId);
         currentListTitle.textContent = list ? list.name : 'Список';
 
-        // Показываем кнопку «+ Задача»
         createTaskBtn.hidden = false;
 
-        // Загружаем задачи
         await loadTasks(listId);
 
-        // Перерисовываем обе области
         renderSidebar();
         renderTasks();
     }
@@ -187,7 +180,7 @@
     async function refreshAll() {
         await loadCategories();
         await loadLists();
-        // Если выбранный список удалили (например, вместе с категорией)
+
         if (state.selectedListId !== null) {
             const stillExists = state.lists.some(l => l.id === state.selectedListId);
             if (!stillExists) {
@@ -208,7 +201,6 @@
     // ============================================================
 
     function setupButtons() {
-        // «+ Категория»
         document.getElementById('create-category-btn').addEventListener('click', async () => {
             const name = prompt('Название категории:');
             if (!name || !name.trim()) return;
@@ -220,7 +212,6 @@
             }
         });
 
-        // «+ Список»
         document.getElementById('create-list-btn').addEventListener('click', async () => {
             if (state.categories.length === 0) {
                 alert('Сначала создайте хотя бы одну категорию.');
@@ -229,10 +220,10 @@
             const name = prompt('Название списка:');
             if (!name || !name.trim()) return;
 
-            // Просим category_id (пока через prompt — потом заменим на select)
             const catList = state.categories.map(c => `${c.id}: ${c.name}`).join('\n');
             const catIdStr = prompt('В какую категорию (введите ID):\n' + catList);
             const catId = parseInt(catIdStr, 10);
+
             if (!catId || !state.categories.some(c => c.id === catId)) {
                 alert('Неверный ID категории.');
                 return;
@@ -246,7 +237,6 @@
             }
         });
 
-        // «+ Задача»
         createTaskBtn.addEventListener('click', async () => {
             if (state.selectedListId === null) return;
             const title = prompt('Текст задачи:');
@@ -265,8 +255,6 @@
     // Утилиты
     // ============================================================
 
-    // Экранирование HTML — защита от XSS.
-    // Если пользователь введёт "<script>", оно отобразится как текст, а не выполнится.
     function escapeHtml(str) {
         const div = document.createElement('div');
         div.textContent = str;
@@ -278,21 +266,18 @@
     // ============================================================
 
     async function init() {
-        // Находим DOM-элементы
         categoriesContainer = document.getElementById('categories-container');
         tasksContainer = document.getElementById('tasks-container');
         currentListTitle = document.getElementById('current-list-title');
         createTaskBtn = document.getElementById('create-task-btn');
 
-        // Навешиваем обработчики кнопок
         setupButtons();
-        // Слушаем событие из context-menu.js: когда там что-то удалят,
-        // мы перезагружаем данные и перерисовываем экран.
+
+        // Слушаем событие из context-menu.js (когда там что-то удаляют/меняют)
         document.addEventListener('data-changed', async () => {
             await refreshAll();
         });
 
-        // Загружаем данные и рендерим
         try {
             await refreshAll();
         } catch (err) {
@@ -301,7 +286,6 @@
         }
     }
 
-    // DOM готов? Запускаем.
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

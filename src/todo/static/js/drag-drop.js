@@ -1,6 +1,8 @@
 // ============================================================
-// Нативный Drag-and-Drop для задач внутри списка.
-// Использует HTML5 Drag and Drop API.
+// Нативный Drag-and-Drop для задач.
+// 1. Сортировка внутри одного списка.
+// 2. Перетаскивание в другие списки.
+// 3. Перетаскивание в пустые категории (с созданием списка).
 // ============================================================
 
 (function () {
@@ -9,74 +11,147 @@
     // Переменная для хранения элемента, который мы сейчас тащим
     let draggedItem = null;
 
-    // Когда DOM загрузится, инициализируем drag-and-drop
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('tasks-container');
-        if (!container) return;
+        const sidebar = document.getElementById('categories-container');
 
-        // --- 1. Начало перетаскивания (dragstart) ---
-        // Делегируем событие на весь document, чтобы не навешивать на каждую карточку
+        if (!container || !sidebar) return;
+
+        // ============================================================
+        // ЧАСТЬ 1: Перетаскивание внутри правой панели (сортировка)
+        // ============================================================
+
+        // --- Начало перетаскивания (dragstart) ---
         document.addEventListener('dragstart', (e) => {
-            // Проверяем: кликнули именно по карточке задачи?
             const card = e.target.closest('.task-card');
             if (!card) return;
 
-            // Запоминаем элемент и добавляем ему класс для визуального эффекта (полупрозрачность)
             draggedItem = card;
             card.classList.add('dragging');
 
-            // Firefox требует установить какие-то данные, иначе drag не начнется
+            // Firefox требует установить данные, иначе drag не начнется
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', card.dataset.taskId);
         });
 
-        // --- 2. Процесс перетаскивания над контейнером (dragover) ---
-        // Срабатывает постоянно, пока мы ведем мышь с зажатой задачей
+        // --- Процесс перетаскивания над контейнером (dragover) ---
         container.addEventListener('dragover', (e) => {
-            // Отменяем стандартное поведение (без этого drop не сработает)
-            e.preventDefault();
+            e.preventDefault(); // Разрешаем drop
 
-            // Находим элемент, ПЕРЕД которым нужно вставить нашу задачу
             const afterElement = getDragAfterElement(container, e.clientY);
-
-            // Сам перетаскиваемый элемент
             const currentDragged = document.querySelector('.dragging');
             if (!currentDragged) return;
 
-            // Визуально вставляем элемент на новое место прямо в процессе движения мыши
+            // Визуально двигаем карточку
             if (afterElement == null) {
-                container.appendChild(currentDragged); // В самый конец
+                container.appendChild(currentDragged);
             } else {
-                container.insertBefore(currentDragged, afterElement); // Перед найденным элементом
+                container.insertBefore(currentDragged, afterElement);
             }
         });
 
-        // --- 3. Завершение перетаскивания (dragend) ---
-        // Срабатывает, когда мы отпустили кнопку мыши
+        // --- Завершение перетаскивания (dragend) ---
         document.addEventListener('dragend', () => {
             if (!draggedItem) return;
-
-            // Убираем визуальный эффект
             draggedItem.classList.remove('dragging');
             draggedItem = null;
 
-            // Сохраняем новый порядок на сервере
+            // Сохраняем новый порядок внутри текущего списка
             saveOrder();
+        });
+
+        // ============================================================
+        // ЧАСТЬ 2: Перетаскивание в сайдбар (на списки или категории)
+        // ============================================================
+
+        // Когда тащим задачу НАД сайдбаром
+        sidebar.addEventListener('dragover', (e) => {
+            const listItem = e.target.closest('.list-item');
+            const category = e.target.closest('.category');
+
+            // Наводим на конкретный список
+            if (listItem) {
+                e.preventDefault();
+                listItem.classList.add('drop-target');
+            }
+            // Наводим на категорию, внутри которой НЕТ списков
+            else if (category && category.querySelectorAll('.list-item').length === 0) {
+                e.preventDefault();
+                category.classList.add('drop-target');
+            }
+        });
+
+        // Убираем подсветку, когда уводим мышь
+        sidebar.addEventListener('dragleave', (e) => {
+            const listItem = e.target.closest('.list-item');
+            const category = e.target.closest('.category');
+            if (listItem) listItem.classList.remove('drop-target');
+            if (category) category.classList.remove('drop-target');
+        });
+
+        // Когда отпускаем задачу в сайдбаре
+        sidebar.addEventListener('drop', async (e) => {
+            const listItem = e.target.closest('.list-item');
+            const category = e.target.closest('.category');
+            const draggedCard = document.querySelector('.dragging');
+
+            if (!draggedCard) return;
+            const taskId = parseInt(draggedCard.dataset.taskId, 10);
+
+            // Сценарий А: Упало на существующий список
+            if (listItem) {
+                e.preventDefault();
+                listItem.classList.remove('drop-target');
+                const newListId = parseInt(listItem.dataset.listId, 10);
+
+                try {
+                    await API.moveTask(taskId, newListId);
+                    document.dispatchEvent(new CustomEvent('data-changed'));
+                } catch (err) {
+                    alert('Не удалось переместить задачу: ' + err.message);
+                }
+            }
+            // Сценарий Б: Упало на пустую категорию
+            else if (category && category.querySelectorAll('.list-item').length === 0) {
+                e.preventDefault();
+                category.classList.remove('drop-target');
+
+                const categoryId = parseInt(category.dataset.categoryId, 10);
+                const categoryName = category.querySelector('.category-name').textContent;
+
+                const newListName = prompt(`В категории "${categoryName}" нет списков.\nСоздать новый список и переместить туда задачу?`);
+
+                // Если нажали Отмена или пустая строка — откатываем визуально
+                if (!newListName || !newListName.trim()) {
+                    document.dispatchEvent(new CustomEvent('data-changed'));
+                    return;
+                }
+
+                try {
+                    // Создаем список и сразу переносим туда задачу
+                    const newList = await API.createList(newListName.trim(), categoryId);
+                    await API.moveTask(taskId, newList.id);
+                    document.dispatchEvent(new CustomEvent('data-changed'));
+                } catch (err) {
+                    console.error(err);
+                    alert('Ошибка: ' + err.message);
+                }
+            }
         });
     });
 
-    // --- Вспомогательная функция: где именно вставить элемент? ---
-    // Она вычисляет, мимо какого элемента сейчас находится курсор мыши
+    // ============================================================
+    // Вспомогательные функции
+    // ============================================================
+
+    // Вычисляет, перед каким элементом нужно вставить карточку
     function getDragAfterElement(container, y) {
-        // Получаем все карточки, КРОМЕ той, которую мы тащим
         const draggableElements = [...container.querySelectorAll('.task-card:not(.dragging)')];
 
         return draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
-            // Вычисляем смещение курсора относительно центра карточки
             const offset = y - box.top - box.height / 2;
 
-            // Нам нужна карточка, над которой курсор, но которая ближе всего к курсору снизу
             if (offset < 0 && offset > closest.offset) {
                 return { offset: offset, element: child };
             } else {
@@ -85,28 +160,22 @@
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    // --- Сохранение порядка на сервере ---
+    // Сохраняет порядок на сервере
     async function saveOrder() {
         const container = document.getElementById('tasks-container');
         if (!container) return;
 
-        // Собираем все карточки из DOM в их текущем (новом) порядке
         const cards = container.querySelectorAll('.task-card');
-        // Извлекаем ID задач и превращаем в массив чисел
         const newOrder = Array.from(cards).map(card => parseInt(card.dataset.taskId, 10));
 
         if (newOrder.length === 0) return;
 
         try {
-            // Отправляем новый порядок на бэкенд через наш API
             await API.reorderTasks(newOrder);
             console.log('Порядок задач сохранен:', newOrder);
         } catch (err) {
             console.error('Ошибка сохранения порядка:', err);
-            alert('Не удалось сохранить порядок задач: ' + err.message);
-
-            // Если произошла ошибка, просим main.js перезагрузить данные с сервера,
-            // чтобы вернуть всё как было.
+            // Возвращаем всё как было при ошибке
             document.dispatchEvent(new CustomEvent('data-changed'));
         }
     }

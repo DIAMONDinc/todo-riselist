@@ -134,6 +134,7 @@
     border-radius: 8px;
     box-shadow: var(--shadow);
     transition: border-color 0.15s, transform 0.1s;
+    user-select: none; /* Запрещаем выделять текст при перетаскивании */
 }
 
 .task-card:hover {
@@ -177,13 +178,28 @@
     white-space: nowrap;
 }
 
-/* ---------- Drag-and-drop ---------- */
+/* ---------- Drag-and-Drop ---------- */
+
+/* Для карточек задач (визуальный эффект при перетаскивании) */
 .dragging {
     opacity: 0.4;
 }
+
 .drop-target {
     border-color: var(--accent) !important;
     border-style: dashed !important;
+}
+
+/* НОВОЕ: Подсветка списка в сайдбаре, когда на него тащат задачу */
+.list-item.drop-target {
+    border: 1px dashed var(--accent);
+    background: rgba(255, 140, 66, 0.1); /* Легкий оранжевый фон */
+}
+
+/* НОВОЕ: Подсветка пустой категории, когда на неё тащат задачу */
+.category.drop-target {
+    border: 1px dashed var(--accent);
+    background: rgba(255, 140, 66, 0.1);
 }
 
 /* ---------- Контекстное меню ---------- */
@@ -213,4 +229,20 @@
 .context-menu-item:hover {
     background: var(--danger);
     color: #fff;
+}
+
+/* ---------- Кнопка "Три точки" (Kebab Menu) ---------- */
+.more-btn {
+    display: none; /* Полностью скрываем из потока */
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+/* Показываем только при наведении на карточку задачи или список */
+.task-card:hover .more-btn,
+.list-item:hover .more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

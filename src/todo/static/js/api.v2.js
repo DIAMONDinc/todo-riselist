@@ -103,6 +103,21 @@ window.API = (function () {
         });
     }
 
+    // НОВАЯ ФУНКЦИЯ: Перемещение задачи в другой список
+    function moveTask(taskId, listId) {
+        return request(`/tasks/${taskId}/move`, {
+            method: 'PATCH',
+            body: JSON.stringify({ list_id: listId }),
+        });
+    }
+
+    function updateList(id, name) {
+        return request(`/lists/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ name }),
+        });
+    }
+
     // Публичный API модуля
     return {
         getCategories,
@@ -116,5 +131,7 @@ window.API = (function () {
         toggleTask,
         deleteTask,
         reorderTasks,
+        moveTask, // <--- Не забудьте добавить в экспорт!
+        updateList,
     };
 })();

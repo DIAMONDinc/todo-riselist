@@ -7,6 +7,7 @@ from todo.tasks.services import (
     list_tasks,
     reorder_tasks,
     toggle_task,
+    move_task,
 )
 
 tasks_bp = Blueprint("tasks", __name__)
@@ -77,3 +78,18 @@ def add_task_to_list(list_id: int):
     data["list_id"] = list_id
     task = create_task(**data)
     return jsonify(task_schema.dump(task)), 201
+
+
+@tasks_bp.patch("/<int:task_id>/move")
+def move(task_id: int):
+    """
+    PATCH /tasks/<id>/move — переместить задачу в другой список.
+    Тело: {"list_id": 5}
+    """
+    data = request.get_json()
+    new_list_id = data.get("list_id")
+    if not new_list_id:
+        return jsonify({"error": "list_id is required"}), 400
+
+    task = move_task(task_id, new_list_id)
+    return jsonify(task_schema.dump(task))

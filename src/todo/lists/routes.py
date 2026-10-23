@@ -6,6 +6,7 @@ from todo.lists.services import (
     delete_list,
     get_list,
     list_lists,
+    update_list,
 )
 
 lists_bp = Blueprint("lists", __name__)
@@ -48,3 +49,15 @@ def remove_list(list_id: int):
     """DELETE /lists/<id> — удалить список (и все его задачи)."""
     delete_list(list_id)
     return "", 204
+
+
+@lists_bp.patch("/<int:list_id>")
+def update(list_id: int):
+    """PATCH /lists/<id> — обновить список (пока только название)."""
+    data = request.get_json()
+    name = data.get("name")
+    if not name or not name.strip():
+        return jsonify({"error": "name is required"}), 400
+
+    task_list = update_list(list_id, name.strip())
+    return jsonify(list_schema.dump(task_list))

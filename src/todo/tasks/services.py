@@ -23,17 +23,17 @@ def create_task(title: str, description: str = "", list_id: int | None = None) -
     """
     if list_id is not None:
         max_pos = (
-            db.session.query(db.func.max(Task.position))
-            .filter(Task.list_id == list_id)
-            .scalar()
-            or 0
+                db.session.query(db.func.max(Task.position))
+                .filter(Task.list_id == list_id)
+                .scalar()
+                or 0
         )
     else:
         max_pos = (
-            db.session.query(db.func.max(Task.position))
-            .filter(Task.list_id.is_(None))
-            .scalar()
-            or 0
+                db.session.query(db.func.max(Task.position))
+                .filter(Task.list_id.is_(None))
+                .scalar()
+                or 0
         )
 
     task = Task(
@@ -72,3 +72,34 @@ def reorder_tasks(task_ids: list[int]) -> None:
         task = get_task(task_id)
         task.position = index
     db.session.commit()
+
+
+# ============================================================
+# НОВАЯ ФУНКЦИЯ: Перемещение задачи в другой список
+# ============================================================
+def move_task(task_id: int, new_list_id: int) -> Task:
+    """
+    Переместить задачу в другой список.
+    """
+    task = get_task(task_id)
+
+    # Импортируем здесь, чтобы избежать циклического импорта
+    from todo.lists.services import get_list
+
+    # Проверяем, что новый список существует (если нет, бросит 404)
+    get_list(new_list_id)
+
+    # Меняем ID списка
+    task.list_id = new_list_id
+
+    # Ставим задачу в конец нового списка
+    max_pos = (
+            db.session.query(db.func.max(Task.position))
+            .filter(Task.list_id == new_list_id)
+            .scalar()
+            or 0
+    )
+    task.position = max_pos + 1
+
+    db.session.commit()
+    return task
