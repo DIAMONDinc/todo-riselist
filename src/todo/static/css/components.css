@@ -181,7 +181,6 @@
 .dragging {
     opacity: 0.4;
 }
-
 .drop-target {
     border-color: var(--accent) !important;
     border-style: dashed !important;

@@ -124,6 +124,8 @@
         state.tasks.forEach(task => {
             const card = document.createElement('div');
             card.className = 'task-card' + (task.is_done ? ' done' : '');
+            card.draggable = true;         // <-- Добавляем: разрешаем перетаскивание
+            card.dataset.taskId = task.id; // <-- Добавляем: сохраняем ID задачи в DOM (чтобы потом собрать порядок)
             card.innerHTML = `
                 <input type="checkbox" class="task-checkbox" ${task.is_done ? 'checked' : ''} data-task-id="${task.id}">
                 <div class="task-content">
@@ -289,6 +291,7 @@
         document.addEventListener('data-changed', async () => {
             await refreshAll();
         });
+
         // Загружаем данные и рендерим
         try {
             await refreshAll();
